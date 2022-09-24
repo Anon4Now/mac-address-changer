@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
+"""Module containing the functions to alter a Linux OS MAC Address"""
 
+# Standard Library imports
 import subprocess
 import random
 import optparse
@@ -7,10 +8,12 @@ import re
 import string
 
 
-# pseudo num generator [1-99]
-def genSeedVal():
-    x = random.randint(1, 99)
-    return x
+def genSeedVal() -> int:
+    """
+    Basic function that will generate a pseudo-random integer between [1-99]
+    :return: The random integer
+    """
+    return random.randint(1, 99)
 
 
 # func for arg handling at the CLI
