@@ -94,7 +94,7 @@ def subprocess_repeat_call(call_list: List[str]) -> None:
 
 
 # main func for script that starts calls
-def subprocess_call() -> str or bool:
+def subprocess_call() -> str:
     """
     Function that creates the subprocess commands as List[str] and passes
     them to the subprocess call function.
