@@ -6,7 +6,10 @@ import random
 import optparse
 import re
 import string
-from typing import Optional, Match
+from typing import Optional, Match, List
+
+# Local App imports
+from errors import NoMacAddressFoundError
 
 
 def get_args() -> optparse.OptionParser.parse_args:
@@ -64,11 +67,11 @@ def gen_random_mac_address(mac_str: str) -> str:
         return out_char  # return the full MAC string
 
 
-# regex extractor that will capture string after "ether" if possible
 def check_mac_address_exists() -> Optional[Match[str]]:
     """
     Function that performs a check parse the user provided
     CLI input and use this to verify that the MAC address exists.
+    If the MAC address does exist in the CLI args, return the
 
     :return: Will either return a string containing a MAC address or None
     """
@@ -80,57 +83,51 @@ def check_mac_address_exists() -> Optional[Match[str]]:
     return search_for_mac_address
 
 
-# takes input and evaluates to see if none-type
-def macArgParseFunc(input_var):
-    if not check_mac_address_exists():  # if MAC address doesn't exist, that means interface is incorrect
-        return None
-    else:  # if MAC address does exist and was extracted
-        if input_var == "random":  # check what arg was input before deciding output
-            return gen_random_mac_address('00:')
-        elif "00:" in input_var:
-            return input_var
-        else:
-            return 'invalid options'
-
-
-# parse list of subprocess args and make the call to OS
-def subCallRepeat(callList):
-    subprocess.call(callList)
+def subprocess_repeat_call(call_list: List[str]) -> None:
+    """
+    Function that actually performs the subprocess calls based
+    on the commands in the param list.
+    :param call_list: List that contains commands to execute against the OS
+    :return: None
+    """
+    subprocess.call(call_list)
 
 
 # main func for script that starts calls
-def subCall():
-    getMACString = macArgParseFunc(outArgs.mac_choice)
-    if not getMACString:  # if interface was incorrectly selected
-        print(f'[-] {outArgs.interface} does not have a MAC address, please enter a valid interface')
-    elif getMACString == 'invalid options':  # if something other than random or static was selected
-        print('[-] MAC flags are not valid, please refer to --help')
-    else:  # user entered everything correctly
-        print(f'[+] Bringing {outArgs.interface} down')
-        subCallRepeat(["ifconfig", outArgs.interface, "down"])
-        print(f'[+] Attempting MAC address change to {getMACString}')
-        subCallRepeat(["ifconfig", outArgs.interface, "hw", "ether", getMACString])
-        print(f'[+] Bringing {outArgs.interface} up')
-        subCallRepeat(["ifconfig", outArgs.interface, "up"])
-        return getMACString
+def subprocess_call() -> str or bool:
+    """
+    Function that creates the subprocess commands as List[str] and passes
+    them to the subprocess call function.
 
-
-# check to see if MAC address change occurred successfully
-def checkOutput():
-    newMACAddress = subCall()  # get copy of new MAC address
-
-    if not newMACAddress:  # skip func if none-type is returned
-        pass
-    else:  # compare the current MAC address to the 'new' MAC address, if same than change was successful
-        getCurrentAddress = regexFunc()
-        capturedGroup = getCurrentAddress.group(0)
-
-        if newMACAddress == capturedGroup:
-            print(f'[+] The MAC Address was successfully changed to {newMACAddress}')
-        else:
-            print(f'[-] The MAC Address changed failed, MAC Address is still {capturedGroup}')
+    :return: None
+    """
+    if check_mac_address_exists():
+        if 'random' or '00' in out_args.interface:  # user entered everything correctly
+            mac_string = gen_random_mac_address('00:') if 'random' in out_args.interface else out_args.interface
+            print(f'[+] Bringing {out_args.interface} down')
+            subprocess_repeat_call(["ifconfig", out_args.interface, "down"])
+            print(f'[+] Attempting MAC address change to {mac_string}')
+            subprocess_repeat_call(["ifconfig", out_args.interface, "hw", "ether", mac_string])
+            print(f'[+] Bringing {out_args.interface} up')
+            subprocess_repeat_call(["ifconfig", out_args.interface, "up"])
+            return mac_string
+    else:
+        raise NoMacAddressFoundError(
+            f'[-] {out_args.interface} does not have a MAC address, please enter a valid interface')
 
 
 if __name__ == '__main__':
-    # checkOutput()
-    print(test_recursive_creation('00:'))
+
+    try:
+        set_mac_address = subprocess_call()  # set the new MAC address
+
+        if set_mac_address:
+            # compare the current MAC address to the 'new' MAC address, if same than change was successful
+            get_current_mac_address = check_mac_address_exists().group(0)
+
+            if set_mac_address == get_current_mac_address:
+                print(f'[+] The MAC Address was successfully changed to {set_mac_address}')
+            else:
+                print(f'[-] The MAC Address changed failed, MAC Address is still {get_current_mac_address}')
+    except NoMacAddressFoundError as e:
+        print(e)
