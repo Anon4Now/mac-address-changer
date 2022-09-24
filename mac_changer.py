@@ -6,18 +6,10 @@ import random
 import optparse
 import re
 import string
+from typing import Optional, Match
 
 
-def genSeedVal() -> int:
-    """
-    Basic function that will generate a pseudo-random integer between [1-99]
-    :return: The random integer
-    """
-    return random.randint(1, 99)
-
-
-# func for arg handling at the CLI
-def get_args() -> optparse.Option:
+def get_args() -> optparse.OptionParser.parse_args:
     """
     Function to handle the CLI arguments passed by the user. Will
     return an error message if the required args are not passed.
@@ -47,60 +39,56 @@ def get_args() -> optparse.Option:
 out_args = get_args()  # get the user and store in global var
 
 
-# take input and return pseudo random character
-def gen_random_chars(input_val: str) -> str:
+def gen_random_mac_address(mac_str: str) -> str:
     """
-    Function that serves as a mechanism to generate random numbers and letters
-    to be used in crafting the MAC addresses. Takes in a string that is either
-    'odd' or 'even' based on the modulo of a randomly generated number. This
-    determines whether a number of letter is returned.
+    Recursive function that will generate a random
+    MAC address string and return it.
 
-    :param input_val: (required) A string containing either 'odd' or 'even'
-    :return: Will return either a string char (i.e. 'a', 'b', 'c') OR a string-number char ('1', '2', '3')
+    :param mac_str: (required) Starting point of the function, all MAC addresses start with ('00:')
+    :return: A MAC address string (e.g., 00:17:AE:59:90:0D)
     """
-    letters = ['a', 'b', 'c', 'd', 'e', 'f']
+    letters = ['A', 'B', 'C', 'D', 'E', 'F']  # letters that comply with Hex chars
     numbers = string.digits
-    
-    return random.choice(letters) if input_val == 'even' else ''.join(random.choice(numbers) for _ in range(1))
+    out_char = mac_str
 
+    if len(out_char) < 17:  # check to see if a full MAC has been created
+        rand_int = random.randint(1, 99)  # get a seed number
+        #  update the var with either a string-num (i.e., '1', '2') OR a string alpha-char (i.e. 'A', 'B')
+        out_char += random.choice(letters) if rand_int % 2 == 0 else ''.join(random.choice(numbers) for _ in range(1))
+        if ":" not in out_char[-2] and ":" not in out_char[
+            -1]:  # check to see if the last 2 chars in the string are not a colon
+            out_char += ":"
+        gen_random_mac_address(out_char)  # start the recursive call
 
-# generate random concatenated alphanum string between [0-9 a-f] (e.g. a4)
-def genRandomMACOctet():
-    resultNumber = ''
-    resultLetter = ''
-
-    if genSeedVal() % 2 != 0:
-        resultNumber += gen_random_chars('odd')
     else:
-        resultLetter += gen_random_chars('even')
-
-    if genSeedVal() % 2 == 0:
-        resultNumber += gen_random_chars('odd')
-    else:
-        resultLetter += gen_random_chars('even')
-
-    return resultNumber + resultLetter
+        return out_char  # return the full MAC string
 
 
 # regex extractor that will capture string after "ether" if possible
-def regexFunc():
-    readIfconfigOutput = subprocess.check_output(["ifconfig", outArgs.interface])  # read the current ifconfig settings
-    decodedBytesObj = readIfconfigOutput.decode('utf-8')  # decode from bytes to utf-8
-    searchForMACAddress = re.search(rf"(?<=ether\s)([\w:]*)(?=\s)",
-                                    decodedBytesObj)  # regex to parse MAC address string
-    return searchForMACAddress
+def check_mac_address_exists() -> Optional[Match[str]]:
+    """
+    Function that performs a check parse the user provided
+    CLI input and use this to verify that the MAC address exists.
+
+    :return: Will either return a string containing a MAC address or None
+    """
+    read_ifconfig_output = subprocess.check_output(
+        ["ifconfig", out_args.interface])  # read the current ifconfig settings
+    decoded_bytes_obj = read_ifconfig_output.decode('utf-8')  # decode from bytes to utf-8
+    search_for_mac_address = re.search(rf"(?<=ether\s)([\w:]*)(?=\s)",
+                                       decoded_bytes_obj)  # regex to parse MAC address string
+    return search_for_mac_address
 
 
 # takes input and evaluates to see if none-type
-def macArgParseFunc(inputVar):
-    if not regexFunc():  # if MAC address doesn't exist, that means interface is incorrect
+def macArgParseFunc(input_var):
+    if not check_mac_address_exists():  # if MAC address doesn't exist, that means interface is incorrect
         return None
     else:  # if MAC address does exist and was extracted
-        if inputVar == "random":  # check what arg was input before deciding output
-            random_mac = f'00:{genRandomMACOctet()}:{genRandomMACOctet()}:{genRandomMACOctet()}:{genRandomMACOctet()}:{genRandomMACOctet()}'
-            return random_mac
-        elif "00:" in inputVar:
-            return inputVar
+        if input_var == "random":  # check what arg was input before deciding output
+            return gen_random_mac_address('00:')
+        elif "00:" in input_var:
+            return input_var
         else:
             return 'invalid options'
 
@@ -144,4 +132,5 @@ def checkOutput():
 
 
 if __name__ == '__main__':
-    checkOutput()
+    # checkOutput()
+    print(test_recursive_creation('00:'))
