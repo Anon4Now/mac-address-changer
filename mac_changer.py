@@ -17,7 +17,13 @@ def genSeedVal() -> int:
 
 
 # func for arg handling at the CLI
-def get_args():
+def get_args() -> optparse.Option:
+    """
+    Function to handle the CLI arguments passed by the user. Will
+    return an error message if the required args are not passed.
+
+    :return: The CLI options passed from the user
+    """
     parser = optparse.OptionParser()  # call the optparse module and init the class
 
     parser.add_option("-i", "--interface", dest="interface",
@@ -26,9 +32,9 @@ def get_args():
                       help="Use this flag to generate a random MAC address (e.g. --random random")  # generate options for args
     parser.add_option("-s", "--static", dest="mac_choice",
                       help="Use this flag to create a new MAC address - has to begin with 00 (e.g. --static 00:11:22:33:44:55")  # generate options for args
-    parsingInput = parser.parse_args()
+    parsing_input = parser.parse_args()
 
-    (options, args) = parsingInput
+    (options, args) = parsing_input
 
     if not options.interface:  # provide inline error-handling if needed args are not provided
         parser.error("[-] Please specify an interface, --help for more info")
@@ -38,20 +44,24 @@ def get_args():
         return options
 
 
-outArgs = get_args()
+out_args = get_args()  # get the user and store in global var
 
 
 # take input and return pseudo random character
-def genRandomCharacters(inputVal):
+def gen_random_chars(input_val: str) -> str:
+    """
+    Function that serves as a mechanism to generate random numbers and letters
+    to be used in crafting the MAC addresses. Takes in a string that is either
+    'odd' or 'even' based on the modulo of a randomly generated number. This
+    determines whether a number of letter is returned.
+
+    :param input_val: (required) A string containing either 'odd' or 'even'
+    :return: Will return either a string char (i.e. 'a', 'b', 'c') OR a string-number char ('1', '2', '3')
+    """
     letters = ['a', 'b', 'c', 'd', 'e', 'f']
     numbers = string.digits
-
-    if inputVal == 'even':
-        resultLetter = random.choice(letters)
-        return resultLetter
-    elif inputVal == 'odd':
-        resultNumber = ''.join(random.choice(numbers) for i in range(1))
-        return resultNumber
+    
+    return random.choice(letters) if input_val == 'even' else ''.join(random.choice(numbers) for _ in range(1))
 
 
 # generate random concatenated alphanum string between [0-9 a-f] (e.g. a4)
@@ -60,14 +70,14 @@ def genRandomMACOctet():
     resultLetter = ''
 
     if genSeedVal() % 2 != 0:
-        resultNumber += genRandomCharacters('odd')
+        resultNumber += gen_random_chars('odd')
     else:
-        resultLetter += genRandomCharacters('even')
+        resultLetter += gen_random_chars('even')
 
     if genSeedVal() % 2 == 0:
-        resultNumber += genRandomCharacters('odd')
+        resultNumber += gen_random_chars('odd')
     else:
-        resultLetter += genRandomCharacters('even')
+        resultLetter += gen_random_chars('even')
 
     return resultNumber + resultLetter
 
