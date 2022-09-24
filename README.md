@@ -29,7 +29,15 @@ A couple example firewalls that use MAC Address filtering are in the links below
 - This was designed in its current state to work with a Linux OS. However if desired it can be altered to fit a Windows OS, the subprocess calls will need to change
 - I wrote this with Python 2.7 capabilities as well, I commented out that code to avoid errors running in Python3
 
-
+## Resource Path:
+```
+rootdir:.
+│   .gitignore
+│   errors.py
+│   LICENSE
+│   mac_changer.py
+│   README.md
+```
 
 ## Using the Tool:
 
